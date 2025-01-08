@@ -2,6 +2,10 @@
   Name: outdoor_weather_probe.ino
   Created: 01/05/2025
   Author: Kevin Ye
+  Notes: This is the peripheral.
+        First initialize DHT22 (temperature/humidity sensor), HM10 (BLE transmitter), and heartbeat LED.
+        Set HM10 device name and local name to WEATHERPROBE using AT commands. Probe the weather sensor every
+        5 seconds. Then send to HM10 for transmission via Software Serial. 
 
   DESIGNED USING: 
     ARDUINO NANO;  
@@ -99,7 +103,7 @@ void loop() {
   Serial.println("Sent " + packet);
 
   heartBeat(LED_BUILTIN);
-  delay(1000);
+  delay(5000);
 }
 
 

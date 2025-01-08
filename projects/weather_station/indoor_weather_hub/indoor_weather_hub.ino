@@ -1,3 +1,24 @@
+/*
+  Name: indoor_weather_hub.ino
+  Created: 01/05/2025
+  Author: Kevin Ye
+  Notes: This is the central. 
+        First initialize BLE, WiFi, LCD, and heartbeat LED. Connect to the wifi with SSID and password
+        specified in arduino_secrets.h. Set up time keeping via pool.ntp.org. Connect to the BLE 
+        peripheral called WEATHERPROBE. Explore for the given characteristic with UUID: 0xffe1 (this is the 
+        HM-10 bluetooth default). Subscribe to notifications and read them every 5 seconds. Update time and
+        temperature/humidity at this point. Pretty print to LCD. 
+
+  DESIGNED USING: 
+    ARDUINO UNO R4 WIFI & BLE;  
+    LCD1602 with I2C Breakout Board
+      (+)-->5V
+      (-)-->GND
+      SDA-->A4    (Wire.h I2C Default)
+      SCL-->A5    (Wire.h I2C Default)
+*/
+
+
 // include for i2c comms with LCD
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -194,10 +215,6 @@ void exploreCharacteristic(BLECharacteristic characteristic) {
     Serial.println("Characteristic does not support notifications.");
   }
 
-  // set up buffer to read BLE
-  const uint8_t maxBLEPacketSize = 20;
-  char buffer[maxBLEPacketSize + 1];
-
   // wait for updates
   while (characteristic) {
     if (characteristic.valueUpdated()) {
@@ -244,6 +261,7 @@ String processWeatherData(String str) {
 
   return weather;
 }
+
 
 /*
 PROCESSTIMEDATE: Retrieves current time from RTC via wifi
@@ -339,7 +357,6 @@ String processTimeDate() {
 /*
 UPDATETIME: Reprobes pool.ntp.org for accurate time
 */
-
 unsigned updateTime() {
   timeClient.update();
   auto timeZoneOffsetHours = -6; // set for UTC-6
@@ -350,6 +367,8 @@ unsigned updateTime() {
   RTC.setTime(timeToSet);
   return unixTime;
 }
+
+
 /*
 LCDPRINTDATA: prints both time&date and weather data to the LCD
 */
@@ -367,6 +386,7 @@ void lcdPrintData(String timeDate, String weatherData) {
   lcd.setCursor(0,1); // (col, row)
   lcd.print(bottom);
 }
+
 
 /*
 PRINTWIFISTATUS: debug, prints SSID, board's local IP, and signal strength
