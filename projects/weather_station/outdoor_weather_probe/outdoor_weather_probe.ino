@@ -6,8 +6,9 @@
   DESIGNED USING: 
     ARDUINO NANO;  
     DHT22 Temp & Weather Sensor
-      -->5V
-      -->GND
+      (+)-->5V
+      out-->D4
+      (-)-->GND
     HM-10 BLE
       VCC-->5V
       GND-->GND
@@ -68,20 +69,20 @@ void setup() {
 // loop
 String packet;
 void loop() {
-  // debug
-  if (HM10.available()) {
-    char c = HM10.read();
-    Serial.write(c);
-  }
-  if (Serial.available()) {
-    char c = Serial.read();
-    HM10.write(c);
-  }
+  // // debug -- print hm10 output to serial and send serial input to hm10
+  // if (HM10.available()) {
+  //   char c = HM10.read();
+  //   Serial.write(c);
+  // }
+  // if (Serial.available()) {
+  //   char c = Serial.read();
+  //   HM10.write(c);
+  // }
 
   // obtain updated weather information
   updateWeatherData(data);
 
-  // debug
+  // debug: make sure data is not NAN
   if (data->temperature == -1 || data->humidity == -1) {
     Serial.println("Failed to read DHT sensor");
     Serial.println("Temperature: " + String(data->temperature) + "\t Humidity: " + String(data->humidity));
@@ -89,12 +90,10 @@ void loop() {
 
   // format packet as "T:tt.t,H:hh". Default: Celsius, Percent
   // since this is under 20 byte BLE packet limit, HM10 handles for us
-  packet = "T:" + String(data->temperature, 1) + ",H:" + String(data->humidity, 0);
+  packet = "T:" + String(data->temperature, 1) + ",H:" + String(data->humidity, 0) + '\0'; // include null-terminator '\0'
 
   // send packet
-  for (char c : packet) {
-    HM10.write(c);
-  }
+  HM10.print(packet);
 
   // more debug for packet sent
   Serial.println("Sent " + packet);
@@ -103,21 +102,23 @@ void loop() {
   delay(1000);
 }
 
-void updateWeatherData(weatherData *d) {
-  d->temperature = random(1, 30);
-  d->humidity = 90;
+
+/*
+  UPDATEWEATHERDATA: Probes DHT temperature and humidy sensor, places float data in dynamically allocated struct.
+*/
+void updateWeatherData(weatherData *d_) {
+  // Read temperature and humidity
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  // check nan
+  d_->temperature = isnan(temperature) ? -1 : temperature;
+  d_->humidity = isnan(humidity) ? -1 : humidity;
 }
 
-// void updateWeatherData(weatherData *d_) {
-//   // Read temperature and humidity
-//   float temperature = dht.readTemperature();
-//   float humidity = dht.readHumidity();
-
-//   // check nan
-//   d_->temperature = isnan(temperature) ? -1 : temperature;
-//   d_->humidity = isnan(humidity) ? -1 : humidity;
-// }
-
+/*
+  HEARTBEAT: Maintains LED blinks based on heartbeatRate
+*/
 void heartBeat(uint8_t pin) {
   unsigned currMillis = millis();
   if (currMillis - prevMillis >= heartbeatRate) {
